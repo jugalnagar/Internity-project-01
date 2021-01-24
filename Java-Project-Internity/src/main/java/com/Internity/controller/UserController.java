@@ -13,36 +13,25 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.Internity.model.User;
 import com.Internity.repository.UserRepository;
+import com.Internity.service.UserService;
 
 @RestController
 public class UserController {
 	
 	@Autowired
-	private UserRepository userRepository;
+	private UserService userService;
 	
 	
 	@PostMapping("/user/signup")
 	public User singUp(@Valid @RequestBody User user) {
 		
-		Optional<User> checkExistUser = userRepository.findById(user.getMobile());
-		
-		if(checkExistUser.isPresent()) {
-			System.out.println("User already registered");
-		}
-		
-		return userRepository.save(user);
+		return userService.registerUser(user);
 	}
 	
-	@GetMapping("/user/{mobile}")
-	public User login(@PathVariable("mobile") long mobile) {
+	@GetMapping("/user/login")
+	public User login(@RequestBody User user) {
 		
-		Optional<User> fetchUser = userRepository.findById(mobile);
-		
-		if(!fetchUser.isPresent()) {
-			System.out.println("user not registered");
-		}
-		
-		return fetchUser.get();
+		return userService.loginUser(user);
 	}
 
 }
