@@ -7,5 +7,7 @@ import com.Internity.model.User;
 
 @Repository
 public interface UserRepository extends JpaRepository<User,Long> {
-
+	
+	public User findByMobileAndPassword(long mobile,String password);
+	
 }
