@@ -1,9 +1,13 @@
 package com.Internity;
 
+import java.util.concurrent.TimeUnit;
+
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.http.CacheControl;
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 
 import springfox.documentation.builders.PathSelectors;
 import springfox.documentation.builders.RequestHandlerSelectors;
@@ -28,5 +32,6 @@ public class JavaProjectInternityApplication {
 				.apis(RequestHandlerSelectors.basePackage("com.Internity"))
 				.build();
 	}
+	
 
 }

@@ -1,14 +1,18 @@
 package com.Internity.controller;
 
 import java.util.Date;
+import java.util.NoSuchElementException;
 
 import javax.servlet.http.HttpSession;
+import javax.validation.ConstraintViolationException;
 import javax.validation.Valid;
 import javax.validation.constraints.Size;
 
+import org.hibernate.validator.constraints.Range;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.BindingResult;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -22,6 +26,10 @@ import com.Internity.model.User;
 import com.Internity.service.MailService;
 import com.Internity.service.UserService;
 
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import springfox.documentation.annotations.ApiIgnore;
+
 @Validated
 @RestController
 @RequestMapping("/user")
@@ -33,54 +41,57 @@ public class UserController {
 	@Autowired
 	private MailService mailService;
 	
+	@ApiOperation(value = "Signup New User")
 	@PostMapping("/signup")
-	public ResponseEntity singUp(@Valid @RequestBody User user) {
+	public ResponseEntity<Object> singUp(@Valid @RequestBody User user,BindingResult bindingResult) {
 		
 		User userStored = null;
 		
-		try {
+		if(bindingResult.hasErrors()) {
+			throw new ConstraintViolationException(null);
+		}
+		
+		try{
 			userStored = userService.findUserByMobile(user.getMobile());
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		
-		try {
-			if(userStored!=null) {
-				return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User already registerd");
-			}
-			
-			userStored = userService.registerUser(user);
-		} catch (Exception e) {
-			e.printStackTrace();
-			return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Please Enter right credential");
+		if(userStored!=null) {
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("User already registerd");
 		}
+			
+		userStored = userService.registerUser(user);
 		
 		return ResponseEntity.ok(userStored);
 	}
 	
+	
+	@ApiOperation(value = "Login Existing User")
 	@PostMapping("/login")
-	public ResponseEntity login(@RequestParam("mobile") @Size(min=10,max=10,message = "Mobile No should contain 10 digits") long mobile,@RequestParam("password") String password) {
+	public ResponseEntity<Object> login(@RequestParam("mobile") @Range(min=1000000000,max=9999999999L,message = "Mobile No should contain 10 digits") long mobile,@RequestParam("password") String password) {
 		
-		User fetchUser = userService.loginUser(mobile,password);
+		User fetchUser = null;
 		
-		if(fetchUser==null) {
-			return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Check your credential");
+		fetchUser = userService.loginUser(mobile,password);
+		
+		if(fetchUser == null) {
+			throw new NoSuchElementException("User "+mobile+" Not Found");
 		}		
 		return ResponseEntity.ok(fetchUser);
 	}
 	
 	
-	
+	@ApiOperation(value = "Reset Password Of Existing User")
 	@PutMapping("/reset-password/{mobile}")
-	public ResponseEntity resetPassword(@RequestParam("oldPassword") @Size(min=8,message = "Password should contain greater than 8 character") String oldPassword,@RequestParam("newPassword") @Size(min=8,message = "Password should contain greater than 8 character") String newPassword,@PathVariable("mobile") long mobile,HttpSession session) {
+	public ResponseEntity<Object> resetPassword(@RequestParam("oldPassword") @Size(min=8,message = "Password must contain greater than 8 character") String oldPassword,@RequestParam("newPassword") @Size(min=8,message = "Password should contain greater than 8 character") String newPassword,@PathVariable("mobile") long mobile,@ApiIgnore HttpSession session){
 		
-		User userFetch = userService.loginUser(mobile, oldPassword);
+		User userFetch = null;
 		
-		if(userFetch==null) {
-			return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not Registered");
-		}
-		int otp = mailService.sendEmail(userFetch.getGmail());
-		//userFetch.setPassword(newPassword);
+		userFetch = userService.findByMobile(mobile);
+		
+		int otp = mailService.sendEmail(userFetch.getEmail());
+		
 		session.setAttribute("newPassword", newPassword);
 		session.setAttribute("otp", otp);
 		
@@ -90,9 +101,9 @@ public class UserController {
 	
 	
 	
-	
+	@ApiOperation(value = "Confirm OTP which sent user's Email")
 	@PutMapping("/confirm-otp/{mobile}")
-	public ResponseEntity confirmOTP(@RequestParam("otp") int otp,@PathVariable("mobile") long mobile,HttpSession session) {
+	public ResponseEntity<Object> confirmOTP(@RequestParam("otp") int otp,@PathVariable("mobile") long mobile,@ApiIgnore HttpSession session) {
 		
 		User userFetch = userService.findByMobile(mobile);
 		
@@ -127,6 +138,35 @@ public class UserController {
 		System.out.println(new Date(session.getLastAccessedTime()));
 		
 		return ResponseEntity.ok(userFetch);
+	}
+	
+	
+	
+	@ApiOperation(value = "Forget Password API Of Existing User")
+	@PutMapping("/forget-password/{mobile}")
+	public ResponseEntity<Object> forgetPassword(@RequestParam("newPassword") @Size(min=8,message = "Password should contain greater than 8 character") String newPassword,@RequestParam("confirmNewPassword") @Size(min=8,message = "Password should contain greater than 8 character") String confirmNewPassword,@PathVariable("mobile") long mobile,@ApiIgnore HttpSession session,@ApiIgnore BindingResult bindingResult) {
+		
+		/*if(bindingResult.hasErrors()) {
+			CustomApiError customApiError=new CustomApiError(HttpStatus.NOT_ACCEPTABLE,"Registration Filed");
+			customApiError.setCustomApiErrors(bindingResult);
+			return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(customApiError);
+		}*/
+		
+		User userFetch = null;
+		
+		try {
+			userFetch = userService.findByMobile(mobile);
+		} catch (Exception e) {
+			return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body("User Not Registered");
+		}
+		
+		int otp = mailService.sendEmail(userFetch.getEmail());
+
+		session.setAttribute("newPassword", newPassword);
+		session.setAttribute("otp", otp);
+		
+		
+		return ResponseEntity.ok("Enter OTP");
 	}
 
 }

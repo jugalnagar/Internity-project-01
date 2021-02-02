@@ -20,8 +20,9 @@ public class MailService {
 		message.setTo(email);
 		message.setSubject("OTP configuration");
 		message.setText("Your One-Time Password(OTP) for reset/forget you password is "+otp+". Please don't share it with anyone.");
-		message.setReplyTo("donotreply@gmail.com");
+		message.setReplyTo("noreply@notification.com");
 		message.setSentDate(new Date());
+		message.setFrom("noreply@notification.com");
 		
 		javaMailSender.send(message);
 		
