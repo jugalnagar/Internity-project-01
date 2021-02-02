@@ -72,11 +72,16 @@ public class UserController {
 	public ResponseEntity<Object> login(@RequestParam("mobile") @Range(min=1000000000,max=9999999999L,message = "Mobile No should contain 10 digits") long mobile,@RequestParam("password") String password) {
 		
 		User fetchUser = null;
+		try{
+			fetchUser = userService.findByMobile(mobile);
+		} catch (Exception e) {
+			throw new NoSuchElementException("User not registered");
+		}
 		
 		fetchUser = userService.loginUser(mobile,password);
 		
 		if(fetchUser == null) {
-			throw new NoSuchElementException("User "+mobile+" Not Found");
+			throw new NoSuchElementException("Password is incorrect!!");
 		}		
 		return ResponseEntity.ok(fetchUser);
 	}
@@ -84,11 +89,21 @@ public class UserController {
 	
 	@ApiOperation(value = "Reset Password Of Existing User")
 	@PutMapping("/reset-password/{mobile}")
-	public ResponseEntity<Object> resetPassword(@RequestParam("oldPassword") @Size(min=8,message = "Password must contain greater than 8 character") String oldPassword,@RequestParam("newPassword") @Size(min=8,message = "Password should contain greater than 8 character") String newPassword,@PathVariable("mobile") long mobile,@ApiIgnore HttpSession session){
+	public ResponseEntity<Object> resetPassword(@RequestParam("oldPassword") String oldPassword,@RequestParam("newPassword") @Size(min=8,message = "Password should contain greater than 8 character") String newPassword,@PathVariable("mobile") long mobile,@ApiIgnore HttpSession session){
 		
 		User userFetch = null;
 		
-		userFetch = userService.findByMobile(mobile);
+		try{
+			userFetch = userService.findByMobile(mobile);
+		} catch (Exception e) {
+			throw new NoSuchElementException("User not registered");
+		}
+		
+		userFetch = userService.loginUser(mobile,oldPassword);
+		
+		if(userFetch == null) {
+			throw new NoSuchElementException("Old Password is incorrect!!");
+		}
 		
 		int otp = mailService.sendEmail(userFetch.getEmail());
 		
@@ -144,20 +159,17 @@ public class UserController {
 	
 	@ApiOperation(value = "Forget Password API Of Existing User")
 	@PutMapping("/forget-password/{mobile}")
-	public ResponseEntity<Object> forgetPassword(@RequestParam("newPassword") @Size(min=8,message = "Password should contain greater than 8 character") String newPassword,@RequestParam("confirmNewPassword") @Size(min=8,message = "Password should contain greater than 8 character") String confirmNewPassword,@PathVariable("mobile") long mobile,@ApiIgnore HttpSession session,@ApiIgnore BindingResult bindingResult) {
+	public ResponseEntity<Object> forgetPassword(@RequestParam("newPassword") @Size(min=8,message = "Password should contain greater than 8 character") String newPassword,@RequestParam("confirmNewPassword") @Size(min=8,message = "Password should contain greater than 8 character") String confirmNewPassword,@PathVariable("mobile") long mobile,@ApiIgnore HttpSession session) {
 		
-		/*if(bindingResult.hasErrors()) {
-			CustomApiError customApiError=new CustomApiError(HttpStatus.NOT_ACCEPTABLE,"Registration Filed");
-			customApiError.setCustomApiErrors(bindingResult);
-			return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(customApiError);
-		}*/
 		
 		User userFetch = null;
 		
 		try {
 			userFetch = userService.findByMobile(mobile);
+		} catch (NoSuchElementException e) {
+			throw new NoSuchElementException("User not registered");
 		} catch (Exception e) {
-			return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body("User Not Registered");
+			e.printStackTrace();
 		}
 		
 		int otp = mailService.sendEmail(userFetch.getEmail());

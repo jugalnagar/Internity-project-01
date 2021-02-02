@@ -24,7 +24,7 @@ public class FileUploadHelper {
 		String path = null;
 		try {
 			Files.copy(file.getInputStream(),Paths.get(UPLOAD_DIR+File.separator+file.getOriginalFilename()),StandardCopyOption.REPLACE_EXISTING);
-			path = ServletUriComponentsBuilder.fromCurrentContextPath().path("/static/images/").path(file.getOriginalFilename()).toUriString();
+			path = ServletUriComponentsBuilder.fromCurrentContextPath().path("/images/").path(file.getOriginalFilename()).toUriString();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

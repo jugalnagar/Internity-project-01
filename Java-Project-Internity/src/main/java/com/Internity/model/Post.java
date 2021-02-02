@@ -18,7 +18,7 @@ public class Post {
 	
 	private String postPic;
 	
-	//private String description;
+	private String description;
 	
 	@JsonBackReference
 	@OneToOne
@@ -40,13 +40,13 @@ public class Post {
 		this.postPic = postPic;
 	}
 
-//	public String getDescription() {
-//		return description;
-//	}
-//
-//	public void setDescription(String description) {
-//		this.description = description;
-//	}
+	public String getDescription() {
+		return description;
+	}
+
+	public void setDescription(String description) {
+		this.description = description;
+	}
 
 	public User getUser() {
 		return user;

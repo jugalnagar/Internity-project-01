@@ -3,8 +3,6 @@ package com.Internity.controller;
 import java.util.List;
 import java.util.NoSuchElementException;
 
-import javax.validation.Valid;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,6 +12,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -42,7 +41,7 @@ public class PostController {
 	
 	@ApiOperation(value = "Upload new Post of Existing user")
 	@PostMapping(path="/{mobile}",consumes ={"multipart/mixed", "multipart/form-data"})
-	public ResponseEntity<Object> createNewPost(@RequestParam("postPhoto") MultipartFile multipartfile,@PathVariable("mobile") long mobile/*,@RequestBody Post post*/) {
+	public ResponseEntity<Object> createNewPost(@RequestPart("postPhoto") MultipartFile multipartfile,@PathVariable("mobile") long mobile,@RequestPart String title) {
 		
 		if(multipartfile.isEmpty()) {
 			return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body("Please select valid Image");
@@ -66,6 +65,7 @@ public class PostController {
 			}
 			post.setPostPic(postPic);
 			post.setUser(userFetch);
+			post.setDescription(title);
 		} catch (Exception e) {
 			e.printStackTrace();
 			return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body("Post Photo path is not correct");
@@ -85,20 +85,18 @@ public class PostController {
 	public ResponseEntity<Object> fetchAllPostOfUser(@PathVariable("mobile")long mobile){
 		
 		User userFetch = null;
-		
-		try {
+		try{
 			userFetch = userService.findByMobile(mobile);
-		} catch (Exception e) {
-			e.printStackTrace();
-			return ResponseEntity.status(HttpStatus.NO_CONTENT).body("User not exist");
+		}catch (Exception e) {
+			throw new NoSuchElementException("User Not Exist");
 		}
+		
 		
 		List<Post> posts = null;
 		
 		try {
 			posts = postService.fetchAllPostOfUser(userFetch);
 		} catch (Exception e) {
-			e.printStackTrace();
 			return ResponseEntity.status(HttpStatus.NO_CONTENT).body("Post not exist for particular user");
 		}
 		
@@ -119,7 +117,7 @@ public class PostController {
 		
 		Post post = postService.fetchSinglePostOfUserByPostId(postId,userFetch);
 		if(post==null) {
-			throw new NoSuchElementException("Post didn't uploaded with Id"+postId);
+			throw new NoSuchElementException("Post didn't uploaded with Id "+postId);
 		}
 		
 		return ResponseEntity.ok(post);
