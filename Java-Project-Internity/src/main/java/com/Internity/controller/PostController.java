@@ -10,11 +10,9 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.multipart.MultipartFile;
 
 import com.Internity.component.FileUploadHelper;
 import com.Internity.model.Post;
@@ -40,32 +38,25 @@ public class PostController {
 	
 	
 	@ApiOperation(value = "Upload new Post of Existing user")
-	@PostMapping(path="/{mobile}",consumes ={"multipart/mixed", "multipart/form-data"})
-	public ResponseEntity<Object> createNewPost(@RequestPart("postPhoto") MultipartFile multipartfile,@PathVariable("mobile") long mobile,@RequestPart String title) {
+	@PostMapping(path="/{mobile}")
+	public ResponseEntity<Object> createNewPost(@RequestBody Post post,@PathVariable("mobile") long mobile) {
 		
-		if(multipartfile.isEmpty()) {
-			return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body("Please select valid Image");
-		}
-		
-		if(!multipartfile.getContentType().equals("image/jpeg")) {
-			return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body("Only JPEG file are allowed");
-		}
 		
 		User userFetch = null;
-		Post post = new Post();
 		try {
 			userFetch = userService.findByMobile(mobile);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+		
 		try {
-			String postPic = fileUploadHelper.uploadFile(multipartfile);
-			if(postPic==null) {
+			String filename = userFetch.getLastName()+userFetch.getFirstName()+postService.count();
+			String path = fileUploadHelper.uploadEncodedImage(post.getPostPic(), filename);
+			if(path==null) {
 				return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Something went wrong");
 			}
-			post.setPostPic(postPic);
+			post.setPostPic(path);
 			post.setUser(userFetch);
-			post.setDescription(title);
 		} catch (Exception e) {
 			e.printStackTrace();
 			return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body("Post Photo path is not correct");

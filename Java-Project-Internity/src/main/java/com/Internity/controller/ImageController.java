@@ -12,9 +12,8 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.multipart.MultipartFile;
 
 import com.Internity.component.FileUploadHelper;
 import com.Internity.model.User;
@@ -34,16 +33,7 @@ public class ImageController {
 	
 	@ApiOperation(value = "Update profile picture Of Existing User")
 	@PutMapping("/update-profile/{mobile}")
-	public ResponseEntity<Object> updateProfile(@RequestParam("profile") MultipartFile multipartfile,@PathVariable("mobile") @Min(value=1000000000,message="Mobile No must contain 10 digits") @Max(value=9999999999L,message="Mobile No must contain 10 digits") long mobile){
-		
-		
-		if(multipartfile.isEmpty()) {
-			return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body("Please select valid Image");
-		}
-		
-		if(!multipartfile.getContentType().equals("image/jpeg")) {
-			return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body("Only JPEG file are allowed");
-		}
+	public ResponseEntity<Object> updateProfile(@RequestBody String encodedString,@PathVariable("mobile") @Min(value=1000000000,message="Mobile No must contain 10 digits") @Max(value=9999999999L,message="Mobile No must contain 10 digits") long mobile){
 		
 		User userFetch = null;
 		userFetch = userService.findByMobile(mobile);
@@ -52,14 +42,16 @@ public class ImageController {
 		}
 		
 		try {
-			String profile = fileUploadHelper.uploadFile(multipartfile);
+			String profile = fileUploadHelper.uploadEncodedImage(encodedString, userFetch.getFirstName()+"_"+"profile");
 			if(profile == null) {
 				return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Something went wrong!!!!!!!!");
 			}
 			userFetch.setProfile(profile);
+			System.out.println(profile);
 		} catch (Exception e) {
 			return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body("Please select valid path of profile");
 		}
+		
 		
 		try {
 			userFetch=userService.registerUser(userFetch);
@@ -67,7 +59,7 @@ public class ImageController {
 			e.printStackTrace();
 		}
 		
-		return ResponseEntity.ok(userFetch);
+		return ResponseEntity.ok("Profile Updated !!");
 	}
 
 	@ApiOperation(value = "Get profile picture of existing user")
@@ -81,9 +73,53 @@ public class ImageController {
 			throw new NoSuchElementException("User Not registered");
 		}
 		
+		
+		
 		return ResponseEntity.ok(userFetch.getProfile());
 	}
 	
 	
 
 }
+
+
+/*
+@ApiOperation(value = "Update profile picture Of Existing User")
+@PutMapping("/update-profile/{mobile}")
+public ResponseEntity<Object> updateProfile(@RequestParam("profile") MultipartFile multipartfile,@PathVariable("mobile") @Min(value=1000000000,message="Mobile No must contain 10 digits") @Max(value=9999999999L,message="Mobile No must contain 10 digits") long mobile){
+	
+	
+	if(multipartfile.isEmpty()) {
+		return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body("Please select valid Image");
+	}
+	
+	if(!multipartfile.getContentType().equals("image/jpeg")) {
+		return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body("Only JPEG file are allowed");
+	}
+	
+	User userFetch = null;
+	userFetch = userService.findByMobile(mobile);
+	if(userFetch == null) {
+		throw new NoSuchElementException(null);
+	}
+	
+	try {
+		String profile = fileUploadHelper.uploadFile(multipartfile);
+		if(profile == null) {
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Something went wrong!!!!!!!!");
+		}
+		userFetch.setProfile(profile);
+		System.out.println(profile);
+	} catch (Exception e) {
+		return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body("Please select valid path of profile");
+	}
+	
+	
+	try {
+		userFetch=userService.registerUser(userFetch);
+	} catch (Exception e) {
+		e.printStackTrace();
+	}
+	
+	return ResponseEntity.ok("Profile Updated !!");
+}*/

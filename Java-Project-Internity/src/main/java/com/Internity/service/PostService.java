@@ -26,4 +26,8 @@ public class PostService {
 	public Post fetchSinglePostOfUserByPostId(long postId,User user) {
 		return postRepository.findByPostIdAndUser(postId,user);
 	}
+	
+	public long count() {
+		return postRepository.count();
+	}
 }

@@ -22,12 +22,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.Internity.model.OTP;
 import com.Internity.model.User;
 import com.Internity.service.MailService;
+import com.Internity.service.OTPService;
 import com.Internity.service.UserService;
 
 import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiParam;
 import springfox.documentation.annotations.ApiIgnore;
 
 @Validated
@@ -40,6 +41,9 @@ public class UserController {
 	
 	@Autowired
 	private MailService mailService;
+	
+	@Autowired
+	private OTPService otpService;
 	
 	@ApiOperation(value = "Signup New User")
 	@PostMapping("/signup")
@@ -107,9 +111,11 @@ public class UserController {
 		
 		int otp = mailService.sendEmail(userFetch.getEmail());
 		
-		session.setAttribute("newPassword", newPassword);
-		session.setAttribute("otp", otp);
+		OTP otpStored=otpService.storeOTP(new OTP(userFetch.getMobile(),newPassword,new Date(),otp));
 		
+		if(otpStored==null) {
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Something went wrong!!!!");
+		}
 		
 		return ResponseEntity.ok("Enter OTP");
 	}
@@ -125,32 +131,38 @@ public class UserController {
 		if(userFetch==null) {
 			return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not Registered");
 		}
-		String newPassword = (String) session.getAttribute("newPassword");
-		Object storedOTP = session.getAttribute("otp");
 		
-		//check user provide reset password request or not
-		if(newPassword==null || storedOTP==null) {
+		OTP otpFetch = otpService.getOTP(userFetch.getMobile());
+		
+		if(otpFetch==null) {
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("You can not access this");
+    	}
+		
+		long time  = new Date().getTime()-otpFetch.getTime().getTime();
+		
+		System.out.println((time/1000)/60);
+		
+		if((time/1000)/60>2) {
+			return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body("OTP valid only for 2 minute");
 		}
 		
-		//match entered otp and which is stored in session
-		if(((int)storedOTP)!=otp) {
+		String newPassword = otpFetch.getData();
+		int storedOTP = otpFetch.getOtp();
+		
+		
+		if((storedOTP)!=otp) {
 			return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body("Entered OTP is wrong");
 		}
 		
 		//set new password to user
 		userFetch.setPassword(newPassword);
 		
+		
 		try {
 			userFetch = userService.registerUser(userFetch);
 		} catch (Exception e) {
 			return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body("Your password not follow constraints");
 		}
-		
-		//remove attributes from session
-		session.removeAttribute("otp");
-		session.removeAttribute("newPassword");
-		System.out.println(new Date(session.getLastAccessedTime()));
 		
 		return ResponseEntity.ok(userFetch);
 	}
@@ -173,10 +185,11 @@ public class UserController {
 		}
 		
 		int otp = mailService.sendEmail(userFetch.getEmail());
-
-		session.setAttribute("newPassword", newPassword);
-		session.setAttribute("otp", otp);
 		
+		OTP otpStored=otpService.storeOTP(new OTP(userFetch.getMobile(),newPassword,new Date(),otp));
+		if(otpStored==null) {
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Something went wrong!!!!");
+		}
 		
 		return ResponseEntity.ok("Enter OTP");
 	}
