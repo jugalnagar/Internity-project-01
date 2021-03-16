@@ -14,6 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -72,7 +73,7 @@ public class UserController {
 	
 	
 	@ApiOperation(value = "Login Existing User")
-	@PostMapping("/login")
+	@GetMapping("/login")
 	public ResponseEntity<Object> login(@RequestParam("mobile") @Range(min=1000000000,max=9999999999L,message = "Mobile No should contain 10 digits") long mobile,@RequestParam("password") String password) {
 		
 		User fetchUser = null;
